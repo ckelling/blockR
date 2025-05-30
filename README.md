@@ -1,2 +1,3 @@
-# blockR
-Repository for "BlockR: An Areal Spatial Anonymization and Visualization Tool"
+# BlockR: An Areal Spatial Anonymization and Visualization Tool
+
+Build in progress: check back soon!
