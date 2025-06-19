@@ -389,6 +389,7 @@ blockR <- function(shps, num_x_blocks){
 }
 
 
+#source of functions: https://spatialanalysis.github.io/handsonspatialdata/contiguity-based-spatial-weights.html
 st_rook <- function(a, b = a) st_relate(a, b, pattern = "F***1****")
 st_queen <- function(a, b = a) st_relate(a, b, pattern = "F***T****")
 
