@@ -11,7 +11,9 @@ unionSpatialPolygons_pck <- function(SpP, IDs, threshold=NULL) {
   if (length(slot(SpP, "polygons")) != length(IDs))
     stop("input lengths differ")
       SpP$IDs <- IDs
-      res <- st_as_sf(SpP) %>%   group_by(IDs) %>%   summarise(geometry = st_union(geometry)) %>% as("Spatial")
+      res <- st_as_sf(SpP) %>%   group_by(IDs) %>%   
+        summarise(geometry = st_union(geometry)) %>% as("Spatial") %>% 
+        suppressMessages()
   res
 }
 

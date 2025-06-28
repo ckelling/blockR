@@ -2,14 +2,14 @@
 ### Function to redo border
 ###
 
-border_change <- function(block_tracts){
+border_change <- function(block_tracts, showoutput = T, quiet = F){
   #assign ids to sample from
   block_tracts@data$id <- 1:length(block_tracts)
   block_tracts@data <- block_tracts@data %>% select(-X1.length.grd_lrg.)
   
   #find blocks that are on the border
   border_shapes <- border_cells_fn(block_tracts)
-  plot(border_shapes)
+  plot(border_shapes, main = "Blocks on the Border")
   
   #initialize indices that we've tried
   tried_ind <- NULL
@@ -36,7 +36,7 @@ border_change <- function(block_tracts){
     k <- length(tried_ind)
     
     #print what unit id we are on
-    print(i)
+    paste("Current shape id being tested:", i)
     
     #reform block tracts without this block
     block_tracts_wo <- block_tracts[-which(block_tracts@data$id == i),]
@@ -115,11 +115,11 @@ border_change <- function(block_tracts){
       #calculate overlap area
       overlap_area <- sum(st_area(st_intersection(st_as_sf(new_pol), 
                                                   st_as_sf(block_tracts_wo)))) %>% 
-        as.numeric()
+        as.numeric() %>% suppressMessages() %>% suppressWarnings()
       #calculate to see if there is line overlap
       overlap_line <- sum(st_length(st_intersection(st_as_sf(new_pol), 
                                                     st_as_sf(block_tracts_wo)))) %>% 
-        as.numeric() %>% round()
+        as.numeric() %>% round() %>% suppressMessages() %>% suppressWarnings()
       
       
       #test to see if it is an island (overlap area ==0) OR
@@ -155,12 +155,12 @@ border_change <- function(block_tracts){
         poly_by_geoid_new <- unionSpatialPolygons_pck(all_shapes_neighb,
                                                       all_shapes_neighb@data$GEOID)
         poly_mat_new <- st_queen(st_as_sf(poly_by_geoid_new)) %>% 
-          as.matrix() %>% round()
+          as.matrix() %>% round() %>% suppressMessages()
         
         poly_by_geoid_orig <- unionSpatialPolygons_pck(block_tracts_orig, 
                                                        block_tracts_orig@data$GEOID)
         poly_mat_orig <- st_queen(st_as_sf(poly_by_geoid_orig)) %>% 
-          as.matrix() %>% round()
+          as.matrix() %>% round() %>% suppressMessages()
       
         #test to see if the shape is disconnected now
         geoid_poly <- all_shapes_neighb[which(all_shapes_neighb@data$GEOID == 
@@ -169,12 +169,12 @@ border_change <- function(block_tracts){
                                                new_pol$GEOID),]
         
         if(length(geoid_poly)>1){
-          geoid_nb <- poly2nb(geoid_poly, queen = F)
+          geoid_nb <- poly2nb(geoid_poly, queen = F) %>% suppressMessages()
           card_nb <- sum(card(geoid_nb))
           if(card_nb > 0){
             #test for island using st, not nb2mat (nb2mat occasionally misidentifies rook as queen)
             rook_st_nums_geoid <- st_rook(st_as_sf(geoid_poly)) %>%
-              as.matrix() %>% round()
+              as.matrix() %>% round() %>% suppressMessages()
 
             #record if this creates islands
             shp_island_bin <- length(which(rowSums(rook_st_nums_geoid) == 0)) == 0
@@ -191,7 +191,7 @@ border_change <- function(block_tracts){
         if(shp_island_bin == T & length(geoid_poly) > 1){
           #test to see if there are multiple components to the shape
           poly_mat_geoid_q <- st_queen(st_as_sf(geoid_poly)) %>% 
-            as.matrix() %>% round()
+            as.matrix() %>% round() %>% suppressMessages()
           
           g_geoid <- graph_from_adjacency_matrix(round(poly_mat_geoid_q), 
                                                  mode="undirected", weighted=NULL)
@@ -210,20 +210,20 @@ border_change <- function(block_tracts){
         #test for island using st, not nb2mat (nb2mat occasionally misidentifies 
         #      rook as queen)
         rook_st_nums <- st_rook(st_as_sf(all_shapes_neighb)) %>% 
-          as.matrix() %>% round()
+          as.matrix() %>% round() %>% suppressMessages()
         num_island <- length(which(rowSums(rook_st_nums) == 0))
         
         #check to make sure that the number of *rook* islands has not
         #   increased (not that it is 0)
         rook_st_orig <- st_rook(st_as_sf(block_tracts_orig)) %>%
-          as.matrix() %>% round()
+          as.matrix() %>% round() %>% suppressMessages()
         num_island_orig <- length(which(rowSums(rook_st_orig) == 0))
         
         #adjacency matrix from sf, not poly2nb
         cell_nb_mat_q <- st_rook(st_as_sf(all_shapes_neighb)) %>% 
-          as.matrix() %>% round()
+          as.matrix() %>% round() %>% suppressMessages()
         cell_nb_mat_orig <- st_rook(st_as_sf(block_tracts_orig)) %>% 
-          as.matrix() %>% round()
+          as.matrix() %>% round() %>% suppressMessages()
 
         #make igraph on cell nb mat and test to see if there are 
         #     separate components
@@ -240,14 +240,15 @@ border_change <- function(block_tracts){
         
         #check to see if this new shape creates holes/lakes
         all_shapes_fill <- round_poly_coords(all_shapes, digits = 3)
-        all_shp_area <- sum(area(all_shapes_fill))
+        all_shp_area <- sum(area(all_shapes_fill)) %>% suppressWarnings()
         
         #combine all of the polygons, fill the holes, then calculate area
         #threshold set so that all holes are filled
         fill_poly <- fill_holes(unionSpatialPolygons_pck(all_shapes_fill, 
                                                          rep(1, length(all_shapes_fill))), 
-                                threshold= sum(area(all_shapes_fill)))
-        fill_hole_area <- area(fill_poly)
+                                threshold= 
+                                  sum(suppressWarnings(area(all_shapes_fill))))
+        fill_hole_area <- area(fill_poly) %>% suppressWarnings()
         
         #how many polygons are there? If there are more than one, can indicate a lake
         #solution: reject the case that this polygon has more than one polygon
@@ -289,9 +290,13 @@ border_change <- function(block_tracts){
           border_shapes <- border_cells_fn(all_shapes)
           store_prev_it <- block_tracts
           block_tracts <- all_shapes
-          print(paste("Success count is ", success_count, " out of ", 
-                      success_threshold, ". (unit ", i, "), shape", j, sep = ""))
           
+          #print status update
+          if(quiet == F){
+            print(paste("Success count is ", success_count, " out of ",
+                        round(success_threshold), 
+                        ". (unit ", i, ", shape attempt ", j, ")", sep = ""))
+          }
           #store ids for those that have moved
           mv_id <- c(mv_id, i)
           
@@ -311,19 +316,29 @@ border_change <- function(block_tracts){
           }
           
           #plot new and old shapes
-          plot(st_as_sf(block_tracts_orig)["GEOID"])
-          plot(st_as_sf(block_tracts)["GEOID"])
+          if(showoutput == T){
+            plot(st_as_sf(block_tracts_orig)["GEOID"], main = "Original shapes")
+            plot(st_as_sf(block_tracts)["GEOID"], main = "Updated shapes with new move")
+          }
           break
         }
       }
       if(j == length(all_poss_shapes)){
-        print(paste("No match found for try ", k, " (unit ", i,
-                    ").", sep = ""))
+        if(quiet == F){
+          print(paste("No match found for try ", k, " (unit ", i,
+                      ").", sep = ""))
+        }
         
+        #show plot of shape that could not be moved
         mv_shp_df <- as.data.frame(mv_shp_coords)
-        no_match <- ggplot()+ geom_sf(data = st_as_sf(block_tracts), aes(fill = GEOID)) + 
-          geom_point(data=mv_shp_df, aes(x=x,y=y), col = "red", size=6, inherit.aes = T)+theme_void()
-        print(no_match)
+        no_match <- ggplot()+ geom_sf(data = st_as_sf(block_tracts), 
+                                      aes(fill = GEOID)) + 
+          geom_point(data=mv_shp_df, aes(x=x,y=y), col = "red", size=6, inherit.aes = T)+
+          theme_void() + labs(title = "Red unit could not be moved")
+        
+        if(showoutput == T){
+          print(no_match)
+        }
       }
     }
     
@@ -334,7 +349,6 @@ border_change <- function(block_tracts){
     na_geoid <- length(which(is.na(block_tracts@data$GEOID)))
     if(na_geoid>0){block_tracts <- block_tracts[-which(is.na(block_tracts@data$GEOID)),]}
     
-    print(paste("Try #:", length(tried_ind)))
   }
   
   return(block_tracts)

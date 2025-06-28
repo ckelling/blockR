@@ -8,9 +8,11 @@ outline_one_shp <- function(shp2, return_shp = F){
   
   #extract window of tract/shape data
   shp2_window <- st_transform(st_union(st_as_sf(shp2)), 
-                              crs = proj4string(shp2)) %>% as("Spatial")
+                              crs = proj4string(shp2)) %>% as("Spatial") %>%
+    suppressMessages()
 
-  new_shp <- unionSpatialPolygons_pck(shp2, rep(1,length(shp2)))
+  new_shp <- unionSpatialPolygons_pck(shp2, rep(1,length(shp2))) %>%
+    suppressMessages()
   
   if(round(area(new_shp)/area(shp2_window), 7) == 1){
     shp2_coords <- new_shp@polygons[[1]]@Polygons[[1]]@coords
@@ -19,7 +21,7 @@ outline_one_shp <- function(shp2, return_shp = F){
     #reform polygon
     new_shp_poly <- st_polygon(list(shp2_coords)) %>% as("Spatial")
     
-    if(round(area(new_shp_poly)/area(new_shp),7) == 1){
+    if(suppressWarnings(round(area(new_shp_poly)/area(new_shp),7) == 1)){
       #only complete if the shape is representative
       shp2_coords <- as.data.frame(shp2_coords)
       return(shp2_coords)
@@ -101,8 +103,8 @@ border_cells_fn <- function(block_tracts){
   shp2_coords <- outline_one_shp(block_tracts)
   
   #check for mismatch, convert to 
-  if(area(as(st_polygon(list(as.matrix(shp2_coords))), "Spatial")) < 
-     0.99* sum(area(block_tracts))){
+  if(suppressWarnings(area(as(st_polygon(list(as.matrix(shp2_coords))), "Spatial")) < 
+     0.99* sum(area(block_tracts)))){
     shp2_coords <- outline_one_shp(block_tracts, return_shp = T)
   }
   
@@ -299,7 +301,7 @@ rotateProj = function(spobj, rot_angle) {
 
 #function to blockify tracts
 blockR <- function(shps, num_x_blocks){
-  sf_use_s2(FALSE)
+  suppressMessages(sf_use_s2(FALSE))
   
   #Create a lattice (grid) over the surface
   grid_num_x <- num_x_blocks
@@ -343,8 +345,7 @@ blockR <- function(shps, num_x_blocks){
   sp_pix <- grd_lrg
   
   #remove near empty pixels
-  pixel_areas <- area(sp_pix)
-  range(pixel_areas)
+  pixel_areas <- suppressWarnings(area(sp_pix))
   
   #empty pixels
   empty_pix <- which(pixel_areas < range(pixel_areas)[2]/2)
@@ -364,7 +365,8 @@ blockR <- function(shps, num_x_blocks){
   ###
   st_pix <- st_as_sf(sp_pix)
   st_cbg <- st_as_sf(shps)
-  st_pix_over <- st_join(st_pix, st_cbg, largest = TRUE)
+  st_pix_over <- suppressMessages(suppressWarnings(st_join(st_pix, st_cbg, 
+                                                           largest = TRUE)))
   sp_pix_over <- as(st_pix_over, "Spatial")
   
   #remove those outside of the shape
@@ -378,7 +380,8 @@ blockR <- function(shps, num_x_blocks){
   
   
   #test to see if there are islands
-  if(length(which(colSums(nb2mat(poly2nb(sp_pix_over), zero.policy = T))==0))>0){
+  if(length(which(colSums(nb2mat(suppressMessages(poly2nb(sp_pix_over)), 
+                                 zero.policy = T))==0))>0){
     print("There are islands in the blockified shape. Attempting to reconnect.")
     
     sp_pix_over <- connect_islands(grid, sp_pix_over, shps)
