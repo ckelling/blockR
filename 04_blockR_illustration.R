@@ -80,7 +80,8 @@ block_tracts <- round_poly_coords(block_tracts, digits = 5)
 proj4string(block_tracts) <- proj4string(rot_tracts)
 
 #add border change process
-block_tracts <- border_change(block_tracts)
+#this border change process takes time
+block_tracts <- border_change(block_tracts, showoutput = T, quiet = F) 
 
 #scale and shift polygon
 block_tracts <- elide.polygonsdf(block_tracts, scale = 2)

@@ -19,7 +19,7 @@ Next, we describe the helper files that were adapted from other packages, includ
 
 Finally, we describe the files to implement the method, as is shown in the paper.
 
-- **01_paper_figures.R**: Reproduces the analysis in the paper shown in Figures 1, 4, 5, 6, and 7.
+- **01_paper_figures.R**: Reproduces the analysis in the paper shown in Figures 1, 4, 6, and 7.
 - **02_blockR_reproduce.R**: Reproduces the analysis in the paper shown in Figures 9, 10, 11.
 - **03_images_for_classification.R**: Creating images for the image classification analysis, summarized in Table 1. These include both random and non-random coloring of the blockified units.
 - **04_blockR_illustration.R**: The previous files are used to reproduce the analysis in our paper. *If you are looking to utilize the BlockR method on a new place (e.g. county), we would suggest adapting this script for the applicable geographic area.* 

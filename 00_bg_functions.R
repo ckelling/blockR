@@ -401,9 +401,11 @@ make_outlines <- function(shp1, shp2){
   #extract window of tract/shape data
   #window of both shapes
   shp1_window <- st_transform(st_union(st_as_sf(shp1)), 
-                              crs = proj4string(shp1)) %>% as("Spatial")
+                              crs = proj4string(shp1)) %>% as("Spatial") %>%
+    suppressMessages()
   shp2_window <- st_transform(st_union(st_as_sf(shp2)),
-                              crs = proj4string(shp2)) %>% as("Spatial")
+                              crs = proj4string(shp2)) %>% as("Spatial") %>%
+    suppressMessages()
   
   #extract points from both shape outlines
   shp1_coords <- shp1_window@polygons[[1]]@Polygons[[1]]@coords
@@ -416,7 +418,8 @@ make_outlines <- function(shp1, shp2){
       next_poly <- shp2_window@polygons[[1]]@Polygons[[i]]
       next_poly_sp <- SpatialPolygons(list(Polygons(list(next_poly),1)))
       
-      first_poly_sp <- terra::union(first_poly_sp, next_poly_sp)
+      first_poly_sp <- terra::union(first_poly_sp, next_poly_sp) %>%
+        suppressMessages()
     }
     first_poly_sp <- gBuffer_block(first_poly_sp, byid = T, width = 0)
     shp2_window <- unionSpatialPolygons_pck(first_poly_sp, 
